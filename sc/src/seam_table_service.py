@@ -26,13 +26,16 @@ class SeamTableService():
 
     @staticmethod
     def find_seam(cumulative_map,backtrack,r, c):
+        seam_path = np.zeros((r,), dtype=np.uint32)
         mask = np.ones((r, c), dtype=np.bool)
         j = np.argmin(cumulative_map[-1])
         for i in reversed(range(r)):
                 # Mark the pixels for deletion
             mask[i, j] = False
             j = backtrack[i, j]
-        return mask
+            seam_path[i] = j
+
+        return mask,seam_path
 
     @staticmethod
     def carve_column(img, energy_map, mode=None, object_removal_mask=None):
@@ -44,7 +47,7 @@ class SeamTableService():
         # print('img.shape {} {}'.format(r, c))
         M,backtrack = SeamTableService.build_minimum_seam_table(r, c, energy_map)
 
-        mask = SeamTableService.find_seam(M,backtrack, r, c)
+        mask,seam_path = SeamTableService.find_seam(M,backtrack, r, c)
 
         mask3D = np.stack([mask] * 3, axis=2)
         img = img[mask3D].reshape((r, c - 1, 3))
@@ -53,6 +56,37 @@ class SeamTableService():
             object_removal_mask = object_removal_mask[mask].reshape((r, c - 1))
             return img, object_removal_mask
 
+        return img
+
+    def build_image_with_extra_seam(seam_path,out_image):
+        r, c, _ = out_image.shape
+        output = np.zeros((r, c + 1, 3))
+
+        for row in range(r):
+            col = seam_path[row]
+            for ch in range(3):
+                if col == 0:
+                    p = np.average(out_image[row, col: col + 2, ch])
+                    output[row, col, ch] = out_image[row, col, ch]
+                    output[row, col + 1, ch] = p
+                    output[row, col + 1:, ch] = out_image[row, col:, ch]
+                else:
+                    p = np.average(out_image[row, col - 1: col + 1, ch])
+                    output[row, : col, ch] = out_image[row, : col, ch]
+                    output[row, col, ch] = p
+                    output[row, col + 1:, ch] = out_image[row, col:, ch]
+        out_image = np.copy(output)
+        return out_image
+        
+    @staticmethod
+    def adding_seam(img,energy_map):
+        r, c = energy_map.shape
+        print('energy_map.shape {} {}'.format(r, c))
+        r, c, _ = img.shape
+        print('img.shape {} {}'.format(r, c))
+        M,backtrack = SeamTableService.build_minimum_seam_table(r, c, energy_map)
+        mask,seam_path = SeamTableService.find_seam(M,backtrack, r, c)
+        img = SeamTableService.build_image_with_extra_seam(seam_path,img)
         return img
 
 

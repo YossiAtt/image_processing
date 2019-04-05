@@ -14,9 +14,29 @@ class Cropper():
         new_c = int(scale_c * c)
         for i in trange(c - new_c):
             energy_map = i_energy.calc_energy(img)
-            status, img = SeamTableService.carve_column(img=img, energy_map=energy_map)
+            img = SeamTableService.carve_column(img=img, energy_map=energy_map)
 
         return img
+    @staticmethod
+    def adding_dimension(img,out_height,out_width):
+        in_height, in_width = img.shape[: 2]
+        delta_row, delta_col = int(out_height - in_height), int(out_width - in_width)
+        while delta_col > 0 or  delta_row > 0:
+            if delta_col > 0:
+                energy_map = i_energy.calc_energy(img)
+                img = SeamTableService.adding_seam(img,energy_map)
+                delta_col =  delta_col -1
+
+            if delta_row > 0:
+                print("rotate")
+                img = np.rot90(img, 1, (0, 1))
+                energy_map = i_energy.calc_energy(img)
+                img = SeamTableService.adding_seam(img,energy_map)
+                delta_row =  delta_row -1
+                img = np.rot90(img, 3, (0, 1))
+
+        return img
+
 
     @staticmethod
     def remove_object(img, mask):
@@ -51,3 +71,5 @@ class Cropper():
 
     def save_result(out_image, filename):
         cv2.imwrite(filename, out_image.astype(np.uint8))
+
+ 
