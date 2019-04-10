@@ -2,7 +2,6 @@ import os
 import cv2
 import numpy as np
 from src.cropper import Cropper
-from src.seam_git import SeamCarver
 
 
 def main():
@@ -12,7 +11,7 @@ def main():
     out_filename = os.path.join(base_dir, 'img\\out.jpg')
     img = cv2.imread(in_filename)
     # objectRemove =  cv2.imread(mask,0).astype(np.float64)
-    saveImage = Cropper.adding_dimension(img,450,450)
+    saveImage = Cropper.adding_dimension(img,460,460)
     Cropper.save_result(saveImage,out_filename)
 
 
